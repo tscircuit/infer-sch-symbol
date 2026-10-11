@@ -1,0 +1,14 @@
+node_modules/
+dist/
+gallery/
+cosmos-export/
+.cosmos/
+.cursor/
+bun.lock
+bun.lockb
+scripts/.render-*/
+tests/fixtures/.render-*/
+*.diff.png
+.env
+.env.*
+!.env.example
