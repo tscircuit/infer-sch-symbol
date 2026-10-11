@@ -5,7 +5,7 @@ labels, electrical attributes, and a footprint. Physical package pin numbers are
 preserved when generating reusable tscircuit TSX.
 
 ```sh
-bun add github:tscircuit/infer-sch-symbol
+bun add https://jscdn.tscircuit.com/@tscircuit/infer-sch-symbol/latest.tgz
 ```
 
 ```ts
@@ -82,6 +82,13 @@ separate from this library.
 ## Development
 
 This repository follows the [handbook bootstrapping guide](https://github.com/tscircuit/handbook/blob/main/guides/bootstrapping-repos.md): source package entrypoint, Bun, disabled lockfiles, Biome, and CI for tests, types, and formatting.
+
+The `bun-pver-release` workflow follows [Plop's GitHub Packages release
+template](https://github.com/tscircuit/plop/blob/main/template-files/bun-pver-release-ghp.yml).
+It runs checks, bumps the version with `pver release`, and publishes to GitHub
+Packages. jscdn serves the package archive automatically; no build step is needed
+for this source package. A versioned installation URL has the form
+`https://jscdn.tscircuit.com/@tscircuit/infer-sch-symbol/0.0.1.tgz`.
 
 ```sh
 bun install

@@ -1,0 +1,49 @@
+# Created using @tscircuit/plop; GitHub Packages source-package variant.
+name: Publish to GitHub Packages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+concurrency:
+  group: package-release
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          registry-url: https://npm.pkg.github.com
+          scope: "@tscircuit"
+          package-manager-cache: false
+
+      - run: npm install -g pver
+      - run: bun install
+      - run: bun run typecheck
+      - run: bun run format:check
+      - run: bun test
+
+      - name: Publish package
+        run: pver release
+        env:
+          NODE_AUTH_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ github.token }}
