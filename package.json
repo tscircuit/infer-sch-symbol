@@ -1,6 +1,6 @@
 {
   "name": "@tscircuit/infer-sch-symbol",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Infer tscircuit schematic symbols and pin arrangements from component pin metadata and footprints",
   "type": "module",
   "types": "lib/index.ts",
