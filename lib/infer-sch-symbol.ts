@@ -1,19 +1,19 @@
 import { fp } from "@tscircuit/footprinter"
-import { symbols } from "schematic-symbols"
 import type { PinAttributeMap } from "@tscircuit/props"
+import { symbols } from "schematic-symbols"
 import { corePinLabels } from "./core-pin-labels"
 import type {
+  BuiltinSymbolInference,
   ComponentType,
-  InferSchSymbolInput,
-  InferredSchSymbol,
   InferenceBase,
   InferenceDiagnostic,
+  InferredSchSymbol,
+  InferSchSymbolInput,
   PhysicalPin,
-  BuiltinSymbolInference,
 } from "./types"
 
 const canonicalPin = (key: string): PhysicalPin => {
-  const match = /^(?:pin)?([1-9]\d*)$/.exec(key)
+  const match = /^(?:pin)?([1-9]\d*)$/i.exec(key.trim())
   if (!match || !Number.isSafeInteger(Number(match[1]))) {
     throw new TypeError(
       `Unsupported physical pin ${JSON.stringify(key)}. This prototype supports positive numeric package pins; BGA identifiers need a physical-pin adapter.`,
@@ -24,7 +24,11 @@ const canonicalPin = (key: string): PhysicalPin => {
 
 const pinNumber = (pin: PhysicalPin) => Number(pin.slice(3))
 const normalizedRole = (role: string) =>
-  role.toLowerCase().replace(/[\s_]/g, "")
+  role
+    .trim()
+    .toLowerCase()
+    .replace(/\u2212/g, "-")
+    .replace(/[\s_]/g, "")
 const safeJson = (value: unknown) =>
   JSON.stringify(value)
     .replace(/</g, "\\u003c")
@@ -56,7 +60,11 @@ function collectPins(input: InferSchSymbolInput) {
     if (aliases.some((label) => typeof label !== "string"))
       throw new TypeError(`Pin labels for ${pin} must be strings`)
     pinLabels[pin] = [
-      ...new Set(aliases.filter((label) => label.trim().length > 0)),
+      ...new Set(
+        aliases
+          .map((label) => label.trim())
+          .filter((label) => label.length > 0),
+      ),
     ]
   }
 
@@ -67,7 +75,7 @@ function collectPins(input: InferSchSymbolInput) {
         if (pad.type !== "pcb_smtpad" && pad.type !== "pcb_plated_hole")
           continue
         const numericHint = pad.port_hints?.find((hint) =>
-          /^(?:pin)?[1-9]\d*$/.test(hint),
+          /^(?:pin)?[1-9]\d*$/i.test(hint.trim()),
         )
         if (!numericHint) continue
         const pin = canonicalPin(numericHint)
@@ -109,7 +117,7 @@ function collectPins(input: InferSchSymbolInput) {
   // Label-keyed datasheet attributes are expanded onto physical pins, including
   // repeated VDD/GND labels. Physical identifiers remain distinct.
   for (const [key, attributes] of Object.entries(input.pinAttributes ?? {})) {
-    const physicalKey = /^(?:pin)?\d+$/.test(key)
+    const physicalKey = /^(?:pin)?\d+$/i.test(key.trim())
     const pins = physicalKey
       ? [canonicalPin(key)]
       : Object.entries(pinLabels)
@@ -211,8 +219,23 @@ const builtinDefinitions: Partial<Record<ComponentType, BuiltinDefinition>> = {
   opamp: {
     symbolName: "opamp_with_power_right",
     roles: {
-      inp1: ["in+", "inplus", "noninverting", "noninvertinginput", "inp1"],
-      inp2: ["in-", "inminus", "inverting", "invertinginput", "inp2"],
+      inp1: [
+        "in+",
+        "inplus",
+        "noninverting",
+        "non-inverting",
+        "noninvertinginput",
+        "non-invertinginput",
+        "inp1",
+      ],
+      inp2: [
+        "in-",
+        "inminus",
+        "inverting",
+        "invertinginput",
+        "inverting-input",
+        "inp2",
+      ],
       out: ["out", "output"],
       "V+": ["v+", "vcc", "vdd", "vs+"],
       "V-": ["v-", "vee", "vss", "gnd", "vs-"],
@@ -306,17 +329,17 @@ function inferBox(
   base: InferenceBase,
   padPoints: Map<PhysicalPin, PadPoint>,
 ): InferredSchSymbol {
-  const left: PhysicalPin[] = [],
-    right: PhysicalPin[] = [],
-    top: PhysicalPin[] = [],
-    bottom: PhysicalPin[] = []
+  const left: PhysicalPin[] = []
+  const right: PhysicalPin[] = []
+  const top: PhysicalPin[] = []
+  const bottom: PhysicalPin[] = []
   const unknown: PhysicalPin[] = []
   for (const pin of base.physicalPins) {
     const attributes = base.pinAttributes[pin] ?? {}
     if (attributes.requiresGround || attributes.providesGround) bottom.push(pin)
     else if (attributes.requiresPower) {
       const negativeRail = base.pinLabels[pin].some((label) =>
-        /^(?:v-|v−|vee|vss|vs-)$/i.test(label),
+        /^(?:v-|v−|vee|vss|vs-|vs−)$/i.test(label.trim()),
       )
       ;(negativeRail ? bottom : top).push(pin)
     } else if (
