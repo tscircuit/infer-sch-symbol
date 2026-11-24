@@ -333,8 +333,13 @@ function inferBox(
     const point = padPoints.get(pin)
     // Use physical placement only for signals with no electrical layout hint.
     // Never interpret location as polarity, direction, or internal connectivity.
-    if (point && point.x !== 0) (point.x < 0 ? left : right).push(pin)
-    else (left.length <= right.length ? left : right).push(pin)
+    if (point && point.x !== 0 && Math.abs(point.x) >= Math.abs(point.y)) {
+      const side = point.x < 0 ? left : right
+      side.push(pin)
+    } else if (point && point.y !== 0) {
+      const side = point.y > 0 ? top : bottom
+      side.push(pin)
+    } else (left.length <= right.length ? left : right).push(pin)
   }
   const schPinArrangement = {
     leftSide: { pins: left, direction: "top-to-bottom" as const },
